@@ -41,7 +41,7 @@ Run the tests with `bun install && bun test`.
 
 ## Ready-made store
 
-The [TON Checkout Kit](https://ton-checkout-store.yukikawata.workers.dev) adds a Cloudflare Workers store built on this library: a checkout page with TonConnect, QR code and manual payment details, order storage in Workers KV, file delivery after payment, and a script that pays test orders on testnet. The store on that page is the kit itself.
+The [TON Checkout Kit](https://store.yukikawata.fyi) adds a Cloudflare Workers store built on this library: a checkout page with TonConnect, QR code and manual payment details, order storage in Workers KV, file delivery after payment, and a script that pays test orders on testnet. The store on that page is the kit itself.
 
 Yuki Kawata publishes this library and sells the kit. Both were written with Claude, an AI model by Anthropic.
 

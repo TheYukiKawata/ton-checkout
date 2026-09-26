@@ -1,6 +1,6 @@
 import { Address } from "@ton/core";
 import type { Jetton, JettonAsset } from "./asset.ts";
-import { asObject, asString } from "./json.ts";
+import { asBoolean, asObject, asString } from "./json.ts";
 import { tonapiBaseUrl, type Network } from "./network.ts";
 import { parseEventsPage, type Transfer } from "./transfer.ts";
 
@@ -21,6 +21,7 @@ export class TonApiError extends Error {
 }
 
 const eventsPageSize = 100;
+const maxEventPages = 40;
 
 export class TonApi {
   private readonly baseUrl: string;
@@ -36,7 +37,11 @@ export class TonApi {
   async transfersSince(account: Address, since: number): Promise<Transfer[]> {
     const transfersById = new Map<string, Transfer>();
     let beforeLt: bigint | null = null;
+    let pages = 0;
     do {
+      if (++pages > maxEventPages) {
+        throw new Error(`More than ${eventsPageSize * maxEventPages} events since ${since}. Check this invoice from a newer start time.`);
+      }
       const query = new URLSearchParams({ limit: String(eventsPageSize), start_date: String(since) });
       if (beforeLt !== null) query.set("before_lt", beforeLt.toString());
       const page = parseEventsPage(await this.get(`/v2/accounts/${account.toRawString()}/events?${query}`));
@@ -45,6 +50,13 @@ export class TonApi {
       beforeLt = reachedStart ? null : page.nextBeforeLt;
     } while (beforeLt !== null);
     return [...transfersById.values()];
+  }
+
+  async merchantKeptValue(receiverTransaction: string): Promise<boolean> {
+    const transaction = asObject(await this.get(`/v2/blockchain/transactions/${receiverTransaction}`), "transaction");
+    const incoming = asObject(transaction.in_msg, "transaction.in_msg");
+    const bounceMessage = asBoolean(incoming.bounced, "transaction.in_msg.bounced");
+    return transaction.bounce_phase === undefined && !bounceMessage;
   }
 
   async acceptJetton(jetton: Jetton, owner: Address): Promise<JettonAsset> {

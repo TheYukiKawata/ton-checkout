@@ -2,8 +2,9 @@ export { TON, USDT, assetDecimals, assetSymbol, type Asset, type Jetton, type Je
 export { createInvoice, invoiceFromJson, invoiceToJson, isJettonInvoice, type Invoice, type InvoiceJson } from "./invoice.ts";
 export { friendlyAddress, tonkeeperLink, transferLink } from "./links.ts";
 export type { Network } from "./network.ts";
-export { paymentStatus, type PaymentStatus } from "./payment.ts";
+export { checkInvoice } from "./check.ts";
+export type { PaymentStatus } from "./payment.ts";
 export { TonApi, TonApiError, type TonApiOptions } from "./tonapi.ts";
 export { jettonPaymentTransaction, tonPaymentTransaction, type TonConnectTransaction } from "./tonconnect.ts";
-export type { Transfer } from "./transfer.ts";
+export type { Transfer, TransferredAsset } from "./transfer.ts";
 export { formatUnits, parseUnits } from "./units.ts";

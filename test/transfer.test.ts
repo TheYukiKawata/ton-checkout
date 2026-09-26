@@ -9,7 +9,7 @@ describe("parseEventsPage", () => {
     const [transfer] = transfers;
     expect(transfer?.amount).toBe(2_000_000_000n);
     expect(transfer?.comment).toBe("MEMO");
-    expect(transfer?.jetton).toBeNull();
+    expect(transfer?.asset).toEqual({ kind: "ton", receiverTransaction: "tx-MEMO-2000000000" });
     expect(transfer?.sender?.equals(buyer)).toBe(true);
     expect(transfer?.recipient.equals(merchant)).toBe(true);
   });
@@ -18,8 +18,11 @@ describe("parseEventsPage", () => {
     const { transfers } = parseEventsPage(page([event({ id: "a" }, jettonTransfer("37000000", "MEMO"))]));
     const [transfer] = transfers;
     expect(transfer?.amount).toBe(37_000_000n);
-    expect(transfer?.jetton?.master.equals(usdtMaster)).toBe(true);
-    expect(transfer?.jetton?.recipientWallet.equals(merchantUsdtWallet)).toBe(true);
+    const asset = transfer?.asset;
+    expect(asset?.kind).toBe("jetton");
+    if (asset?.kind !== "jetton") return;
+    expect(asset.master.equals(usdtMaster)).toBe(true);
+    expect(asset.recipientWallet.equals(merchantUsdtWallet)).toBe(true);
   });
 
   test("skips events still in progress and failed actions", () => {

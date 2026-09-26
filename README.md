@@ -4,7 +4,7 @@ Accept TON and USDT payments in TypeScript without a payment processor. The libr
 
 ```ts
 import { Address } from "@ton/core";
-import { TON, TonApi, USDT, createInvoice, parseUnits, paymentStatus, tonkeeperLink } from "ton-checkout";
+import { TON, TonApi, USDT, checkInvoice, createInvoice, parseUnits, tonkeeperLink } from "ton-checkout";
 
 const tonapi = new TonApi({ network: "mainnet", apiKey: process.env.TONAPI_KEY });
 const merchant = Address.parse("UQ...");
@@ -12,13 +12,15 @@ const merchant = Address.parse("UQ...");
 const invoice = createInvoice({ network: "mainnet", recipient: merchant, asset: TON, amount: parseUnits("25", 9) });
 console.log(tonkeeperLink(invoice));
 
-const status = paymentStatus(invoice, await tonapi.transfersSince(merchant, invoice.createdAt));
+const status = await checkInvoice(tonapi, invoice);
 if (status.kind === "paid") console.log("Paid");
 ```
 
 ## How a payment is matched
 
-Each invoice gets a random 10-character comment. `paymentStatus` adds up finalized, successful transfers to your address that carry the comment, and reports `unpaid`, `underpaid`, or `paid`. Comments match without regard to case or surrounding spaces, because buyers sometimes type them by hand.
+Each invoice gets a random 10-character comment. `checkInvoice` adds up finalized, successful transfers to your address that carry the comment, and reports `unpaid`, `underpaid`, or `paid`. Comments match without regard to case or surrounding spaces, because buyers sometimes type them by hand.
+
+TonAPI reports a TON transfer as successful even when it bounced back to the sender, which happens when someone sends a bounceable payment to a wallet that has never sent a transaction. `checkInvoice` checks each matching TON transfer against your own transaction and drops the ones that bounced.
 
 For USDT, create the asset with `await tonapi.acceptJetton(USDT, merchant)`. A USDT payment then counts only when it arrives through your own USDT jetton wallet, the address the USDT master contract gives for your wallet. A fake token's jetton wallet can claim the real USDT master address, but it is never your jetton wallet, so its transfers never match.
 
@@ -31,8 +33,8 @@ Links and TonConnect messages use the non-bounceable form of your address (`UQ..
 | `createInvoice`, `invoiceToJson`, `invoiceFromJson` | Create an invoice and store it as JSON |
 | `transferLink`, `tonkeeperLink` | `ton://` and Tonkeeper links with amount, comment, and jetton |
 | `tonPaymentTransaction`, `jettonPaymentTransaction` | Transactions to pass to TonConnect's `sendTransaction` |
-| `TonApi.transfersSince`, `TonApi.acceptJetton`, `TonApi.jettonWallet` | Read transfers and jetton wallet addresses from TonAPI |
-| `paymentStatus` | Decide whether an invoice is paid |
+| `TonApi.acceptJetton`, `TonApi.jettonWallet` | Read jetton wallet addresses from TonAPI |
+| `checkInvoice` | Decide whether an invoice is paid |
 | `parseUnits`, `formatUnits` | Convert between decimal strings and smallest units |
 
 Run the tests with `bun install && bun test`.

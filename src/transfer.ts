@@ -9,8 +9,12 @@ export type Transfer = {
   recipient: Address;
   amount: bigint;
   comment: string | null;
-  jetton: { master: Address; recipientWallet: Address } | null;
+  asset: TransferredAsset;
 };
+
+export type TransferredAsset =
+  | { kind: "ton"; receiverTransaction: string }
+  | { kind: "jetton"; master: Address; recipientWallet: Address };
 
 export type EventsPage = {
   transfers: Transfer[];
@@ -47,18 +51,21 @@ type TransferBody = Omit<Transfer, "eventId" | "actionIndex" | "timestamp">;
 
 function parseActionBody(action: JsonObject, path: string): TransferBody | null {
   if (action.status !== "ok") return null;
-  if (action.type === "TonTransfer") return parseTonTransfer(asObject(action.TonTransfer, `${path}.TonTransfer`));
+  if (action.type === "TonTransfer") {
+    const receiverTransaction = asString(asArray(action.base_transactions, `${path}.base_transactions`)[0], `${path}.base_transactions[0]`);
+    return parseTonTransfer(asObject(action.TonTransfer, `${path}.TonTransfer`), receiverTransaction);
+  }
   if (action.type === "JettonTransfer") return parseJettonTransfer(asObject(action.JettonTransfer, `${path}.JettonTransfer`));
   return null;
 }
 
-function parseTonTransfer(body: JsonObject): TransferBody {
+function parseTonTransfer(body: JsonObject, receiverTransaction: string): TransferBody {
   return {
     sender: accountAddress(body.sender, "TonTransfer.sender"),
     recipient: accountAddress(body.recipient, "TonTransfer.recipient"),
     amount: asInteger(body.amount, "TonTransfer.amount"),
     comment: asOptionalString(body.comment, "TonTransfer.comment"),
-    jetton: null,
+    asset: { kind: "ton", receiverTransaction },
   };
 }
 
@@ -70,7 +77,8 @@ function parseJettonTransfer(body: JsonObject): TransferBody | null {
     recipient: accountAddress(body.recipient, "JettonTransfer.recipient"),
     amount: asInteger(body.amount, "JettonTransfer.amount"),
     comment: asOptionalString(body.comment, "JettonTransfer.comment"),
-    jetton: {
+    asset: {
+      kind: "jetton",
       master: Address.parse(asString(jetton.address, "JettonTransfer.jetton.address")),
       recipientWallet: Address.parse(asString(body.recipients_wallet, "JettonTransfer.recipients_wallet")),
     },

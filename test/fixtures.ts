@@ -21,6 +21,7 @@ export function tonTransfer(amount: number, comment?: string, status = "ok") {
   return {
     type: "TonTransfer",
     status,
+    base_transactions: [`tx-${comment ?? "none"}-${amount}`],
     TonTransfer: {
       sender: { address: buyer.toRawString() },
       recipient: { address: merchant.toRawString() },

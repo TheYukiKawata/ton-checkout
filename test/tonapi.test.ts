@@ -41,9 +41,20 @@ describe("TonApi.transfersSince", () => {
     expect(await tonapi.transfersSince(merchant, 100)).toHaveLength(1);
   });
 
+  test("stops after 40 pages instead of exceeding the Workers subrequest limit", async () => {
+    let requests = 0;
+    const endless = (async () => {
+      requests += 1;
+      return Response.json(page([event({ id: `e${requests}`, timestamp: 500 }, tonTransfer(1, "X"))], 10));
+    }) as unknown as typeof fetch;
+    const tonapi = new TonApi({ network: "mainnet", fetch: endless });
+    await expect(tonapi.transfersSince(merchant, 100)).rejects.toThrow("More than 4000 events");
+    expect(requests).toBeLessThanOrEqual(40);
+  });
+
   test("throws TonApiError on HTTP errors", async () => {
     const tonapi = new TonApi({ network: "mainnet", fetch: fakeFetch({}) });
-    expect(tonapi.transfersSince(merchant, 0)).rejects.toBeInstanceOf(TonApiError);
+    await expect(tonapi.transfersSince(merchant, 0)).rejects.toBeInstanceOf(TonApiError);
   });
 });
 
